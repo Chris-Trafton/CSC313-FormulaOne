@@ -125,7 +125,7 @@ public class FormulaOne {
     // pg 161
     private static class Animate implements Runnable {
         public void run() {
-            while (endgame == fasle) {
+            while (endgame == false) {
                 backgroundDraw();
                 trackDraw();
                 playerDraw();
@@ -160,7 +160,7 @@ public class FormulaOne {
                 }
 
                 if (downPressed) {
-                    p1velocity = p1velocity - velocitystep
+                    p1velocity = p1velocity - velocitystep;
                 }
 
                 if (leftPressed) {
@@ -490,4 +490,259 @@ public class FormulaOne {
         g2D.drawImage(perspectiveTrack, XOFFSET, YOFFSET + yoffset, null);
     }
 
+    private static void playerDraw() {
+        Graphics g = apppFrame.getGraphics();
+        Graphics2D g2D = (Graphics2D) g;
+        g2D.drawImage(cockpit, XOFFSET, cockpitShift, null);
+        g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX() + 0.5), (int)(p1.getY() + 0.5), null);
+    }
+
+    private static class KeyPressed extends AbstractAction {
+        private String action;
+
+        public KeyPressed() { action = ""; }
+        public KeyPressed(String input) { action = input; }
+
+        public void actionPerformed(ActionEvent e) {
+            if (action.equals("UP")) {
+                upPressed = true;
+            }
+            if (action.equals("DOWN")) {
+                downPressed = true;
+            }
+            if (action.equals("LEFT")) {
+                leftPressed = true;
+            }
+            if (action.equals("RIGHT")) {
+                rightPressed = true;
+            }
+        }
+    }
+
+    private static class KeyReleased extends AbstractAction {
+        private String action;
+
+        public KeyReleased() { action = ""; }
+        public KeyReleased(String input) { action = input; }
+
+        public void actionPerformed(ActionEvent e) {
+            if(action.equals("UP")) {
+                upPressed = false;
+            }
+            if (action.equals("DOWN")) {
+                downPressed = false;
+            }
+            if (action.equals("LEFT")) {
+                leftPressed = false;
+            }
+            if (action.equals("RIGHT")) {
+                rightPressed = false;
+            }
+        }
+    }
+
+    private static class QuitGame implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            endgame = true;
+        }
+    }
+
+    private static class StartGame implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            endgame = true;
+            upPressed = false;
+            downPressed = false;
+            leftPressed = false;
+            rightPressed = false;
+            p1 = new ImageObject(p1originalX, p1originalY, p1width, p1height, 0.0);
+            p1velocity = 0.0;
+            camerax = 0;
+            cameray = 0;
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException ie) { }
+            setupTrack();
+            endgame = false;
+            Thread t1 = new Thread(new Animate());
+            Thread t2 = new Thread(new PlayerMover());
+            Thread t3 = new Thread(new CameraMover());
+            t1.start();
+            t2.start();
+            t3.start();
+        }
+    }
+
+    private static class ImageObject {
+        // vars of ImageObject
+        private double x;
+        private double y;
+        private double xwidth;
+        private double yheight;
+        private double angle; // in Radians
+        private double internalangle; // in Radians
+        private Vector<Double> coords;
+        private Vector<Double> triangles;
+        private double comX;
+        private double comY;
+
+        public ImageObject() {
+
+        }
+
+        public ImageObject(double xinput, double yinput, double xwidthinput, double yheightinput, double angleinput) {
+            x = xinput;
+            y = yinput;
+            xwidth = xwidthinput;
+            yheight = yheightinput;
+            angle = angleinput;
+            internalangle = 0.0;
+            coords = new Vector<Double>();
+        }
+
+        public double getX() { return x; }
+        public double getY() { return y; }
+        public double getWidth() { return xwidth; }
+        public double getHeight() { return yheight; }
+        public double getAngle() { return angle; }
+        public double getInternalAngle() { return internalangle; }
+        public void setAngle(double angleinput) { angle = angleinput; }
+        public void setInternalAngle(double internalangleinput) { internalangle = internalangleinput; }
+        public Vector<Double> getCoords() { return coords; }
+        public void setCoords(Vector<Double> coordsinput) {
+            coords = coordsinput;
+            generateTriangles();
+            // printTriangles();
+        }
+
+        public void generateTriangles() {
+            triangles = new Vector<Double>();
+            // format: (0, 1), (2, 3), (4, 5) is the (x, y) coords of a triangle
+
+            // get center point of all coordinates
+            comX = getComX();
+            comY = getComY();
+
+            for (int i = 0; i < coords.size(); i = i + 2) {
+                triangles.addElement(coords.elementAt(i));
+                triangles.addElement(coords.elementAt(i + 1));
+
+                triangles.addElement(coords.elementAt((i+2) % coords.size()));
+                triangles.addElement(coords.elementAt((i+3) % coords.size()));
+
+                triangles.addElement(comX);
+                triangles.addElement(comY);
+            }
+        }
+
+        public void printTriangles() {
+            for (int i = 0; i < triangles.size(); i = i + 6) {
+                System.out.println("p0x: " + triangles.elementAt(i) + ", p0y: " + triangles.elementAt(i+1));
+                System.out.println("p1x: " + triangles.elementAt(i+2) + ", p1y: " + triangles.elementAt(i+3)
+                        + triangles.elementAt(i+3));
+                System.out.println("p2x: " + triangles.elementAt(i+4) + ", p2y: " + triangles.elementAt(i+5));
+            }
+        }
+
+        public double getComX() {
+            double ret = 0;
+            if (coords.size() > 0) {
+                for (int i = 0; i < coords.size(); i = i + 2) {
+                    ret = ret + coords.elementAt(i);
+                }
+                ret = ret / (coords.size() / 2.0);
+            }
+            return ret;
+        }
+
+        public double getComY() {
+            double ret = 0;
+            if (coords.size() > 0) {
+                for (int i = 1; i < coords.size(); i = i + 2) {
+                    ret = ret + coords.elementAt(i);
+                }
+                ret = ret / (coords.size() / 2.0);
+            }
+            return ret;
+        }
+
+        public void move(double xinput, double yinput) {
+            x = x + xinput;
+            y = y + yinput;
+        }
+
+        public void moveto(double xinput, double yinput) {
+            x = xinput;
+            y = yinput;
+        }
+
+        public void screenWrap(double leftEdge, double rightEdge, double topEdge, double bottomEdge) {
+            if (x > rightEdge) {
+                moveto(leftEdge, getY());
+            }
+            if (x < leftEdge) {
+                moveto(rightEdge, getY());
+            }
+            if (y > bottomEdge) {
+                moveto(getX(), topEdge);
+            }
+            if (y < topEdge) {
+                moveto(getX(), bottomEdge);
+            }
+        }
+
+        public void rotate(double angleinput) {
+            angle = angle + angleinput;
+            while (angle > twoPi) {
+                angle = angle - twoPi;
+            }
+
+            while (angle < 0) {
+                angle = angle + twoPi;
+            }
+        }
+
+        public void spin(double internalangleinput) {
+            internalangle = internalangle + internalangleinput;
+            while (internalangle > twoPi) {
+                internalangle = internalangle - twoPi;
+            }
+
+            while (internalangle < 0) {
+                internalangle = internalangle + twoPi;
+            }
+        }
+    }
+
+    private static void bindKey(JPanel myPanel, String input) {
+        myPanel.getInputMap(IFW).put(KeyStroke.getKeyStroke("pressed " + input), input + " pressed");
+        myPanel.getActionMap().put(input + " pressed", new KeyPressed(input));
+
+        myPanel.getInputMap(IFW).put(KeyStroke.getKeyStroke("released " + input), input + " released");
+        myPanel.getActionMap().put(input + " released", new KeyReleased(input));
+    }
+
+    public static void main(String[] args) {
+        setup();
+        appFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        appFrame.setSize(WINWIDTH + 1, WINHEIGHT + 85);
+
+        JPanel myPanel = new JPanel();
+
+        JButton newGameButton = new JButton("New Game");
+        newGameButton.addActionListener(new StartGame());
+        myPanel.add(newGameButton);
+
+        JButton quitButton = new JButton("Quit Game");
+        newGameButton.addActionListener(new quitGame());
+        myPanel.add(quitButton);
+
+        bindKey(myPanel, "UP");
+        bindKey(myPanel, "DOWN");
+        bindKey(myPanel, "LEFT");
+        bindKey(myPanel, "RIGHT");
+        bindKey(myPanel, "F");
+
+        appFrame.getContentPane().add(myPanel, "South");
+        appFrame.setVisible(true);
+    }
 }
