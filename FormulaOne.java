@@ -1,2 +1,493 @@
+import java.nio.Buffer;
+import java.util.Vector;
+import java.util.Random;
+
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
+import javax.swing.AbstractAction;
+import javax.swing.JComboBox;
+
+import javax.imageio.ImageIO;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
+import java.awt.Polygon;
+import java.awt.Color;
+
 public class FormulaOne {
+    public FormulaOne() { setup(); }
+    // pg 179-180 all variables
+    private static Boolean endgame;
+    private static BufferedImage background;
+    private static BufferedImage player;
+    private static BufferedImage cockpit;
+    private static BufferedImage track;
+    private static BufferedImage perspectiveTrack;
+    private static Vector<Vector<Vector<Integer>>> trackMatrix;
+
+    private static int camerax;
+    private static int cameray;
+
+    private static int cockpitShift;
+
+    private static Boolean upPressed;
+    private static Boolean downPressed;
+    private static Boolean leftPressed;
+    private static Boolean rightPressed;
+
+    private static ImageObject p1;
+    private static double p1width;
+    private static double p1height;
+    private static double p1originalX;
+    private static double p1originalY;
+    private static double p1velocity;
+
+    private static int XOFFSET;
+    private static int YOFFSET;
+    private static int WINWIDTH;
+    private static int WINHEIGHT;
+
+    private static double pi;
+    private static double quarterPi;
+    private static double halfPi;
+    private static double threequartersPi;
+    private static double fivequartersPi;
+    private static double threehalvesPi;
+    private static double sevenquartersPi;
+    private static double twoPi;
+
+    private static JFrame appFrame;
+
+    private static final int IFW = JComponent.WHEN_IN_FOCUSED_WINDOW;
+
+    // pg 160
+    public static void setup() {
+        appFrame = new JFrame("Formula 1");
+
+        XOFFSET = 0;
+        YOFFSET = 40;
+        WINWIDTH = 500;
+        WINHEIGHT = 500;
+
+        pi = 3.14159265358979;
+        quarterPi = 0.25 * pi;
+        halfPi = 0.5 * pi;
+        threequartersPi = 0.75 * pi;
+        fivequartersPi = 1.25 * pi;
+        threehalvesPi = 1.5 * pi;
+        sevenquartersPi = 1.75 * pi;
+        twoPi = 2.0 * pi;
+
+        endgame = false;
+        p1width = 228;
+        p1height = 228;
+        cockpitShift = 350;
+        p1originalX = (double)XOFFSET + ((double)WINWIDTH / 2.0) - (p1width / 2.0);
+        p1originalY = (double)YOFFSET + (double)cockpitShift;
+
+        trackMatrix = new Vector<Vector<Vector<Integer>>>();
+
+        try {
+            background = ImageIO.read(new File("images/Tron_Skyline.png"));
+            player = ImageIO.read(new File(""));
+            cockpit = ImageIO.read(new File(""));
+            track = ImageIO.read(new File(""));
+            perspectiveTrack = convertToARGB(ImageIO.read(new File("")));
+        } catch (IOException ioe) { }
+    }
+
+    // pg 161
+    private static BufferedImage convertToARGB(BufferedImage input) {
+        BufferedImage ret = new BufferedImage(input.getWidth(), input.getHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = ret.createGraphics();
+        g.drawImage(input, 0, 0, null);
+        g.dispose();
+        return ret;
+    }
+
+    // pg 161
+    private static class Animate implements Runnable {
+        public void run() {
+            while (endgame == fasle) {
+                backgroundDraw();
+                trackDraw();
+                playerDraw();
+
+                try {
+                    Thread.sleep(32);
+                } catch (InterruptedException e) { }
+            }
+        }
+    }
+
+    // pg 161-162
+    private static class PlayerMover implements Runnable {
+        private double velocitystep;
+        private double rotatestep;
+
+        public PlayerMover() {
+            velocitystep = 0.01;
+            rotatestep = 0.02;
+        }
+
+        public void run() {
+            while (endgame == false) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+
+                }
+
+                if (upPressed) {
+                    p1velocity = p1velocity + velocitystep;
+                }
+
+                if (downPressed) {
+                    p1velocity = p1velocity - velocitystep
+                }
+
+                if (leftPressed) {
+                    if (p1velocity < 0) {
+                        p1.rotate(-rotatestep);
+                    } else {
+                        p1.rotate(rotatestep);
+                    }
+                }
+
+                if (rightPressed) {
+                    if (p1velocity < 0) {
+                        p1.rotate(rotatestep);
+                    } else {
+                        p1.rotate(-rotatestep);
+                    }
+                }
+            }
+        }
+    }
+
+    // pg 163
+    private static int constrainToCap(int position, int differential, int cap) {
+        int ret = differential;
+        while (position + ret < 0) {
+            ret = ret + cap;
+        }
+
+        while (position + ret >= cap) {
+            ret = ret - cap;
+        }
+        // ret = (position + ret) % cap;
+        return ret;
+    }
+
+    // pg 163-164
+    private static class CameraMover implements Runnable {
+        public CameraMover() {}
+
+        public void run() {
+            while (endgame == false) {
+                try {
+                    Thread.sleep(10);
+                } catch (Exception e) {
+
+                }
+
+                // TODO: why does the velocity not impact the movement until about +1.5?
+                int sumx = (int)(-p1velocity * Math.cos(p1.getAngle() - pi / 2.0) + 0.5);
+                int sumy = (int)(p1velocity * Math.sin(p1.getAngle() - pi / 2.0) + 0.5);
+
+                camerax = camerax + constrainToCap(camerax, sumx, trackMatrix.elementAt(0).size());
+                cameray = cameray + constrainToCap(cameray, sumy, trackMatrix.size());
+            }
+        }
+    }
+
+    // pg 164
+    private static Vector<Vector<Vector<Integer>>> splitColors (BufferedImage input) {
+        Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vector<Integer>>>();
+
+        for (int i = 0; i < input.getWidth(); i++) {
+            Vector<Vector<Integer>> tempRow = new Vector<Vector<Integer>>();
+
+            for (int j = 0; j < input.getHeight(); j++) {
+                Vector<Integer> temp = new Vector<Integer>();
+                int rgb = input.getRGB(i, j);
+                int r = (rgb >> 16) & 0x000000FF;
+                int g = (rgb >> 8) & 0x000000FF;
+                int b = rgb & 0x000000FF;
+
+                temp.add(r);
+                temp.add(g);
+                temp.add(b);
+                tempRow.add(temp);
+            }
+            ret.add(tempRow);
+        }
+        return ret;
+    }
+
+    // pg 164
+    private static void setupTrack() {
+        trackMatrix = splitColors(track);
+    }
+
+    //pg 164
+    private static AffineTransformOp rotateImageObject(ImageObject obj) {
+        AffineTransform at = AffineTransform.getRotateInstance(-obj.getAngle(), obj.getWidth() / 2.0,
+                obj.getHeight() / 2.0);
+        AffineTransformOp atop = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
+        return atop;
+    }
+
+    // pg 165
+    private static AffineTransformOp spingImageObject(ImageObject obj) {
+        AffineTransform at = AffineTransform.getRotateInstance(-obj.getInternalAngle(), obj.getWidth() / 2.0,
+                obj.getHeight() / 2.0);
+        AffineTransformOp atop = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
+        return atop;
+    }
+
+    // pg 165
+    private static void backgroundDraw() {
+        Graphics g = appFrame.getGraphics();
+        Graphics2D g2D = (Graphics2D) g;
+
+        int xshift = XOFFSET + (int)((p1.getAngle() / twoPi) * new Double(background.getWidth()) + 0.5);
+        g2D.drawImage(background, xshift, YOFFSET, null);
+        g2D.drawImage(background, xshift - background.getWidth(), YOFFSET, null);
+        g2D.drawImage(cockpit, XOFFSET, cockpitShift, null);
+        g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX(), 0.5),
+                (int)(p1.getY() + 0.5), null);
+    }
+
+    // pg 165-166
+    private static Vector<Vector<Vector<Integer>>> perspectiveFromRectangle(Vector<Vector<Vector<Integer>>> inputGrid,
+                                                                            int base) {
+        Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vector<Integer>>>();
+
+        // allocate space for ret
+        for (int i = 0; i < inputGrid.size(); i++) {
+            Vector<Vector<Integer>> tempRow = new Vector<Vector<Integer>>();
+
+            for (int j = 0; j < inputGrid.elementAt(i).size(); j++) {
+                Vector<Integer> tempRGB = new Vector<Integer>();
+                tempRGB.add(0);
+                tempRGB.add(0);
+                tempRGB.add(0);
+
+                tempRow.add(tempRGB);
+            }
+            ret.add(tempRow);
+        }
+
+        // collapse rows from inputGrid into ret
+        for (int i = 0; i < inputGrid.size(); i++) {
+            for (int j = 0; j < inputGrid.elementAt(i).size(); j++) {
+                double xdim = (double)inputGrid.elementAt(i).size();
+                double ydim = (double)inputGrid.size();
+                double width = xdim - ((double)i / (ydim - 1.0)) * (xdim - (double) base);
+                double stepsize = width / xdim;
+                double offset = (xdim - width) / 2.0;
+                int indexi = i;
+                int indexj = (int) (0.5 + offset + (double)j * stepsize);
+//                System.out.println("i: " + indexi + ", j: " + indexj);
+                ret.elementAt(i).elementAt(j).set(0, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(0));
+                ret.elementAt(i).elementAt(j).set(1, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(1));
+                ret.elementAt(i).elementAt(j).set(2, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(2));
+            }
+        }
+        return ret;
+    }
+
+    // pgs 166-168
+    private static Vector<Vector<Vector<Integer>>> rotateImage(Vector<Vector<Vector<Integer>>> inputImg, double angle,
+                                                               double xpos, double ypos, boolean repeatImag) {
+        Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vector<Integer>>>();
+
+        for (int i = 0; i < inputImg.size(); i++) {
+            Vector<Vector<Integer>> tempRow = new Vector<Vector<Integer>>();
+
+            for (int j = 0; j < inputImg.elementAt(i).size(); j++) {
+                Vector<Integer> tempPixel = new Vector<Integer>();
+                for (int k = 0; k < inputImg.elementAt(i).elementAt(j).size(); k++) {
+                    tempPixel.add(0);
+                }
+                tempRow.add(tempPixel);
+            }
+            ret.add(tempRow);
+        }
+
+        for (int i = 0; i < inputImg.size(); i++) {
+            for (int j = 0; j < inputImg.elementAt(i).size(); j++) {
+                int newj = (int)(0.5 + xpos + ((double)j - xpos) * Math.cos(angle) - ((double)i - ypos) *
+                        Math.sin(angle));
+                int newi = (int)(0.5 + ypos + ((double)j - ypos) * Math.sin(angle) + ((double)i - ypos) *
+                        Math.cos(angle));
+                if (repeatImg) {
+                    while (newj >= ret.elementAt(0).size()) {
+                        newj = newj - ret.elementAt(0).size();
+                    }
+
+                    while (newj < 0) {
+                        newj = newj + ret.elementAt(0).size();
+                    }
+
+                    while (newi >= ret.size()) {
+                        newi = newi - ret.size();
+                    }
+
+                    while (newi < 0) {
+                        newi = newi + ret.size();
+                    }
+                }
+
+                if (newj < ret.elementAt(0).size() && newj >= 0) {
+                    if (newi < ret.size() && newi >= 0) {
+                        ret.elementAt(newi).elementAt(newj).set(0, inputImg.elementAt(i).elementAt(j).elementAt(0));
+                        ret.elementAt(newi).elementAt(newj).set(1, inputImg.elementAt(i).elementAt(j).elementAt(1));
+                        ret.elementAt(newi).elementAt(newj).set(2, inputImg.elementAt(i).elementAt(j).elementAt(2));
+                    }
+                }
+            }
+        }
+            return ret;
+    }
+
+    // pg 168
+    private static Vector<Vector<Vector<Integer>>> duplicate3x3(Vector<Vector<Vector<Integer>>> inputImg) {
+        Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vectro<Integer>>>();
+
+        for (int i = 0; i < inputImg.size() * 3; i++) {
+            Vector<Vector<Integer>> tempRow = new Vector<Vector<Integer>>();
+
+            for (int j = 0; j < inputImg.elementAt(0).size() * 3; j++) {
+                Vector<Integer> tempPixel = new Vector<Integer>();
+                tempPixel.add(0);
+                tempPixel.add(0);
+                tempPixel.add(0);
+
+                tempRow.add(tempPixel);
+            }
+            ret.addElement(tempRow);
+        }
+
+        for (int i = 0; i < ret.size(); i++) {
+            for (int j = 0; j < ret.elementAt(i).size(); j++) {
+                ret.elementAt(i).elementAt(j).set(0, inputImg.elementAt(i % inputImg.size()).
+                        elementAt(j % inputImg.elementAt(0).size()).elementAt(0));
+                ret.elementAt(i).elementAt(j).set(1, inputImg.elementAt(i % inputImg.size()).
+                        elementAt(j % inputImg.elementAt(0).size()).elementAt(1));
+                ret.elementAt(i).elementAt(j).set(2, inputImg.elementAt(i % inputImg.size()).
+                        elementAt(j % inputImg.elementAt(0).size()).elementAt(2));
+            }
+        }
+        return ret;
+    }
+
+    // pgs 168-170
+    private static void trackDraw() {
+        // use camera's position, p1's rotatio, and trapezoid mapper
+
+        int rectWidth = 500;
+        int rectHeight = 175;
+        int base = 150;
+        int xoffset = 0;
+        int yoffset = 232;
+        int scaledown = 5;
+
+        Vector<Vector<Vector<Integer>>> cameraView = new Vector<Vector<Vector<Integer>>>();
+
+        for (int i = 0; i < rectHeight; i++) {
+            Vector<Vector<Integer>> tempRow = new Vector<Vector<Integer>>();
+            for (int j = 0; j < rectWidth; j++) {
+                Vector<Integer> tempRGB = new Vector<Integer>();
+
+                int indexi = cameray - (rectHeight - i); // % trackMatrix.size();
+                int indexj = camerax - (rectWidth - j + (int)(0.5 + ((double) rectWidth / 2.0))); // % trackMatrix.elementAt(0).size();
+
+                while (indexi < 0) {
+                    indexi = indexi + trackMatrix.size();
+                }
+
+                while (trackMatrix.size() <= indexi) {
+                    indexi = indexi - trackMatrix.size();
+                }
+
+                while (indexj < 0) {
+                    indexj = indexj + trackMatrix.elementAt(0).size();
+                }
+
+                while (trackMatrix.elementAt(0).size() < indexj) {
+                    indexj = indexj - trackMatrix.elementAt(0).size();
+                }
+
+                tempRGB.add(trackMatrix.elementAt(indexi).elementAt(indexj).elementAt(0));
+                tempRGB.add(trackMatrix.elementAt(indexi).elementAt(indexj).elementAt(1));
+                tempRGB.add(trackMatrix.elementAt(indexi).elementAt(indexj).elementAt(2));
+
+                tempRow.add(tempRGB);
+            }
+            cameraView.add(tempRow);
+        }
+
+        Vector<Vector<Vector<Integer>>> userview = perspectiveFromRectangle(cameraView, base);
+
+        Graphics g = appFrame.getGraphics();
+        Graphics2D g2D = (Graphics2D) g;
+
+        for (int i = 0; i < rectHeight; i++) {
+            for (int j = 0; j < rectWidth; j++) {
+                int alpha = 255;
+                int red = userview.elementAt(i).elementAt(j).elementAt(0);
+                int green = userview.elementAt(i).elementAt(j).elementAt(1);
+                int blue = userview.elementAt(i).elementAt(j).elementAt(2);
+
+                while (red < 0) {
+                    red += 256;
+                }
+
+                while (256 <= red) {
+                    red -= 256;
+                }
+
+                while (green < 0) {
+                    green += 256;
+                }
+
+                while (256 <= green) {
+                    green -= 256;
+                }
+
+                while (blue < 0) {
+                    blue += 256;
+                }
+
+                while (256 <= blue) {
+                    blue -= 256;
+                }
+
+                Color myColor = new Color(red, green, blue);
+                int rgb = myColor.getRGB();
+                perspectiveTrack.setRGB(j, i, rgb);
+            }
+        }
+        g2D.drawImage(perspectiveTrack, XOFFSET, YOFFSET + yoffset, null);
+    }
+
 }
