@@ -268,11 +268,11 @@ public class FormulaOne {
         Graphics g = appFrame.getGraphics();
         Graphics2D g2D = (Graphics2D) g;
 
-        int xshift = XOFFSET + (int)((p1.getAngle() / twoPi) * new Double(background.getWidth()) + 0.5);
+        int xshift = XOFFSET + (int)((p1.getAngle() / twoPi) * (double) background.getWidth() + 0.5);
         g2D.drawImage(background, xshift, YOFFSET, null);
         g2D.drawImage(background, xshift - background.getWidth(), YOFFSET, null);
         g2D.drawImage(cockpit, XOFFSET, cockpitShift, null);
-        g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX(), 0.5),
+        g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX() + 0.5),
                 (int)(p1.getY() + 0.5), null);
     }
 
@@ -317,7 +317,7 @@ public class FormulaOne {
 
     // pgs 166-168
     private static Vector<Vector<Vector<Integer>>> rotateImage(Vector<Vector<Vector<Integer>>> inputImg, double angle,
-                                                               double xpos, double ypos, boolean repeatImag) {
+                                                               double xpos, double ypos, boolean repeatImg) {
         Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vector<Integer>>>();
 
         for (int i = 0; i < inputImg.size(); i++) {
@@ -371,7 +371,7 @@ public class FormulaOne {
 
     // pg 168
     private static Vector<Vector<Vector<Integer>>> duplicate3x3(Vector<Vector<Vector<Integer>>> inputImg) {
-        Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vectro<Integer>>>();
+        Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vector<Integer>>>();
 
         for (int i = 0; i < inputImg.size() * 3; i++) {
             Vector<Vector<Integer>> tempRow = new Vector<Vector<Integer>>();
@@ -491,7 +491,7 @@ public class FormulaOne {
     }
 
     private static void playerDraw() {
-        Graphics g = apppFrame.getGraphics();
+        Graphics g = appFrame.getGraphics();
         Graphics2D g2D = (Graphics2D) g;
         g2D.drawImage(cockpit, XOFFSET, cockpitShift, null);
         g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX() + 0.5), (int)(p1.getY() + 0.5), null);
@@ -733,7 +733,7 @@ public class FormulaOne {
         myPanel.add(newGameButton);
 
         JButton quitButton = new JButton("Quit Game");
-        newGameButton.addActionListener(new quitGame());
+        newGameButton.addActionListener(new QuitGame());
         myPanel.add(quitButton);
 
         bindKey(myPanel, "UP");
