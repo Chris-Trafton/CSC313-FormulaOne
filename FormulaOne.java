@@ -82,8 +82,8 @@ public class FormulaOne {
 
         XOFFSET = 0;
         YOFFSET = 40;
-        WINWIDTH = 500;
-        WINHEIGHT = 500;
+        WINWIDTH = 257;
+        WINHEIGHT = 257;
 
         pi = 3.14159265358979;
         quarterPi = 0.25 * pi;
@@ -105,10 +105,10 @@ public class FormulaOne {
 
         try {
             background = ImageIO.read(new File("images/Tron_Skyline.png"));
-            player = ImageIO.read(new File(""));
-            cockpit = ImageIO.read(new File(""));
-            track = ImageIO.read(new File(""));
-            perspectiveTrack = convertToARGB(ImageIO.read(new File("")));
+//            player = ImageIO.read(new File(""));
+//            cockpit = ImageIO.read(new File(""));
+            track = ImageIO.read(new File("images/Tron_Ground.png"));
+            perspectiveTrack = convertToARGB(ImageIO.read(new File("images/Tron_Ground.png")));
         } catch (IOException ioe) { }
     }
 
