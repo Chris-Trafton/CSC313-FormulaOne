@@ -105,8 +105,8 @@ public class FormulaOne {
 
         try {
             background = ImageIO.read(new File("images/Tron_Skyline.png"));
-//            player = ImageIO.read(new File(""));
-//            cockpit = ImageIO.read(new File(""));
+            player = ImageIO.read(new File("images/Tron_Wheel.png"));
+            cockpit = ImageIO.read(new File("images/Tron_Car.png"));
             track = ImageIO.read(new File("images/Tron_Ground.png"));
             perspectiveTrack = convertToARGB(ImageIO.read(new File("images/Tron_Ground.png")));
         } catch (IOException ioe) { }
@@ -305,8 +305,12 @@ public class FormulaOne {
                 double stepsize = width / xdim;
                 double offset = (xdim - width) / 2.0;
                 int indexi = i;
+//                int indexj = j;
                 int indexj = (int) (0.5 + offset + (double)j * stepsize);
-//                System.out.println("i: " + indexi + ", j: " + indexj);
+
+                // TODO: somehow we're getting an index out of bounds where indexj is -1
+                System.out.println("width: " + width + ", xdim: " + xdim + ", ydim: " + ydim);
+                System.out.println("i: " + i + ", j: " + j + ", indexi: " + indexi + ", indexj: " + indexj + ", offset: " + offset + ", stepsize: " + stepsize);
                 ret.elementAt(i).elementAt(j).set(0, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(0));
                 ret.elementAt(i).elementAt(j).set(1, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(1));
                 ret.elementAt(i).elementAt(j).set(2, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(2));
@@ -402,10 +406,10 @@ public class FormulaOne {
 
     // pgs 168-170
     private static void trackDraw() {
-        // use camera's position, p1's rotatio, and trapezoid mapper
+        // use camera's position, p1's rotation, and trapezoid mapper
 
-        int rectWidth = 500;
-        int rectHeight = 175;
+        int rectWidth = 34;// 500;
+        int rectHeight = 34;//175;
         int base = 150;
         int xoffset = 0;
         int yoffset = 232;
