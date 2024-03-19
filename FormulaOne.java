@@ -97,8 +97,8 @@ public class FormulaOne {
         endgame = false;
         p1width = 228;
         p1height = 228;
-        cockpitShift = 350;
-        p1originalX = (double)XOFFSET + ((double)WINWIDTH / 2.0) - (p1width / 2.0);
+        cockpitShift = 220;
+        p1originalX = (double)XOFFSET + ((double)WINWIDTH / 2.0) - (p1width / 2.0) + 28;
         p1originalY = (double)YOFFSET + (double)cockpitShift;
 
         trackMatrix = new Vector<Vector<Vector<Integer>>>();
@@ -272,13 +272,11 @@ public class FormulaOne {
         g2D.drawImage(background, xshift, YOFFSET, null);
         g2D.drawImage(background, xshift - background.getWidth(), YOFFSET, null);
         g2D.drawImage(cockpit, XOFFSET, cockpitShift, null);
-        g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX() + 0.5),
-                (int)(p1.getY() + 0.5), null);
+        g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX() + 0.5), (int)(p1.getY() + 0.5), null);
     }
 
     // pg 165-166
-    private static Vector<Vector<Vector<Integer>>> perspectiveFromRectangle(Vector<Vector<Vector<Integer>>> inputGrid,
-                                                                            int base) {
+    private static Vector<Vector<Vector<Integer>>> perspectiveFromRectangle(Vector<Vector<Vector<Integer>>> inputGrid, int base) {
         Vector<Vector<Vector<Integer>>> ret = new Vector<Vector<Vector<Integer>>>();
 
         // allocate space for ret
@@ -410,9 +408,9 @@ public class FormulaOne {
 
         int rectWidth = 34;// 500;
         int rectHeight = 34;//175;
-        int base = 150;
+        int base = 34;//150
         int xoffset = 0;
-        int yoffset = 232;
+        int yoffset = 140;//232
         int scaledown = 5;
 
         Vector<Vector<Vector<Integer>>> cameraView = new Vector<Vector<Vector<Integer>>>();
@@ -497,7 +495,7 @@ public class FormulaOne {
     private static void playerDraw() {
         Graphics g = appFrame.getGraphics();
         Graphics2D g2D = (Graphics2D) g;
-        g2D.drawImage(cockpit, XOFFSET, cockpitShift, null);
+        g2D.drawImage(cockpit, XOFFSET + 28, cockpitShift, null);
         g2D.drawImage(rotateImageObject(p1).filter(player, null), (int)(p1.getX() + 0.5), (int)(p1.getY() + 0.5), null);
     }
 
