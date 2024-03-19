@@ -5,6 +5,9 @@ import java.util.Random;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JButton;
@@ -58,6 +61,11 @@ public class FormulaOne {
     private static double p1originalY;
     private static double p1velocity;
 
+    private static Long audiolifetime;
+    private static Long lastAudioState;
+    private static Clip clip;
+    private static String backgroundState;
+
     private static int XOFFSET;
     private static int YOFFSET;
     private static int WINWIDTH;
@@ -101,6 +109,8 @@ public class FormulaOne {
         p1originalX = (double)XOFFSET + ((double)WINWIDTH / 2.0) - (p1width / 2.0) + 28;
         p1originalY = (double)YOFFSET + (double)cockpitShift;
 
+        audiolifetime = 119000L; // 119 seconds or 1:59 minutes
+
         trackMatrix = new Vector<Vector<Vector<Integer>>>();
 
         try {
@@ -135,6 +145,36 @@ public class FormulaOne {
                 } catch (InterruptedException e) { }
             }
         }
+    }
+
+    private static class AudioLooper implements Runnable {
+        public void run() {
+            while (endgame == false) {
+                Long currTime = Long.valueOf(System.currentTimeMillis());
+                if (currTime - lastAudioState > audiolifetime) {
+                    playAudio(backgroundState);
+                }
+            }
+        }
+    }
+    
+    private static void playAudio(String backgroundState) {
+        try {
+            clip.stop();
+        } catch (Exception e) {
+            // NOP
+        }
+
+         try {
+             AudioInputStream ais = AudioSystem.getAudioInputStream(new File("audio/UproarbyMichaelBriguglio.wav").getAbsoluteFile());
+             clip = AudioSystem.getClip();
+             clip.open(ais);
+             clip.start();
+             lastAudioState = System.currentTimeMillis();
+             audiolifetime = Long.valueOf(119000);
+         } catch (Exception e) {
+             // NOP
+         }
     }
 
     // pg 161-162
@@ -256,7 +296,7 @@ public class FormulaOne {
     }
 
     // pg 165
-    private static AffineTransformOp spingImageObject(ImageObject obj) {
+    private static AffineTransformOp spinImageObject(ImageObject obj) {
         AffineTransform at = AffineTransform.getRotateInstance(-obj.getInternalAngle(), obj.getWidth() / 2.0,
                 obj.getHeight() / 2.0);
         AffineTransformOp atop = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
@@ -305,10 +345,8 @@ public class FormulaOne {
                 int indexi = i;
 //                int indexj = j;
                 int indexj = (int) (0.5 + offset + (double)j * stepsize);
-
-                // TODO: somehow we're getting an index out of bounds where indexj is -1
-                System.out.println("width: " + width + ", xdim: " + xdim + ", ydim: " + ydim);
-                System.out.println("i: " + i + ", j: " + j + ", indexi: " + indexi + ", indexj: " + indexj + ", offset: " + offset + ", stepsize: " + stepsize);
+//                System.out.println("width: " + width + ", xdim: " + xdim + ", ydim: " + ydim);
+//                System.out.println("i: " + i + ", j: " + j + ", indexi: " + indexi + ", indexj: " + indexj + ", offset: " + offset + ", stepsize: " + stepsize);
                 ret.elementAt(i).elementAt(j).set(0, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(0));
                 ret.elementAt(i).elementAt(j).set(1, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(1));
                 ret.elementAt(i).elementAt(j).set(2, inputGrid.elementAt(indexi).elementAt(indexj).elementAt(2));
@@ -560,17 +598,22 @@ public class FormulaOne {
             p1velocity = 0.0;
             camerax = 0;
             cameray = 0;
+            backgroundState = "startState";
             try {
                 Thread.sleep(50);
             } catch (InterruptedException ie) { }
             setupTrack();
+            lastAudioState = System.currentTimeMillis();
+            playAudio(backgroundState);
             endgame = false;
             Thread t1 = new Thread(new Animate());
             Thread t2 = new Thread(new PlayerMover());
             Thread t3 = new Thread(new CameraMover());
+            Thread t4 = new Thread(new AudioLooper());
             t1.start();
             t2.start();
             t3.start();
+            t4.start();
         }
     }
 
